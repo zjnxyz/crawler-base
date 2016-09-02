@@ -15,7 +15,7 @@ public enum CrawlerPropertiesConstant {
      * 默认值: 0
      * </p>
      */
-    EXECUTOR_MIN_IDLE_SIZE("executor.min.idle.size", "1", int.class),
+    EXECUTOR_MIN_IDLE_SIZE("executor.min.idle.size", "2", int.class),
     
     /**
      * 最大工作线程数量.

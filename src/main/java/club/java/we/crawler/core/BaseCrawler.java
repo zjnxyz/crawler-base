@@ -10,8 +10,6 @@ import java.util.List;
  */
 public interface BaseCrawler {
 	
-	String getUserAgent();
-
     /**
      * 可以自定义返回随机的代理
      * @return

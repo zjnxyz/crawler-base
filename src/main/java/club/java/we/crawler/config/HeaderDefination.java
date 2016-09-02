@@ -46,7 +46,21 @@ public class HeaderDefination {
 	
 	private String userAgent;
 	
-	private CookiesManager cookiesManager = new CookiesManager();
+	/** 当期请求得host*/
+	private String host;
+	
+	/** 上一次请求的地址*/
+	private String referer;
+	
+	private CookiesManager cookiesManager;
+	
+	public HeaderDefination(){
+		
+	}
+	
+	public HeaderDefination(String suffix){
+		cookiesManager = new CookiesManager(suffix);
+	}
 
 	public String getAccept() {
 		return accept;
@@ -103,6 +117,23 @@ public class HeaderDefination {
 	public void setCookiesManager(CookiesManager cookiesManager) {
 		this.cookiesManager = cookiesManager;
 	}
+	
+	public String getHost() {
+		return host;
+	}
+
+	public void setHost(String host) {
+		this.host = host;
+	}
+	
+
+	public String getReferer() {
+		return referer;
+	}
+
+	public void setReferer(String referer) {
+		this.referer = referer;
+	}
 
 	public Map<String, String> getHeaders() {
 		headers.put(ACCEPT, getAccept() == null ? DEFAULT_ACCEPT : getAccept());
@@ -110,6 +141,7 @@ public class HeaderDefination {
 		headers.put(ACCEPT_LANGUAGE, getAcceptLanguage() == null ? DEFAULT_ACCEPT_LANGUAGE : getAcceptLanguage());
 		headers.put(CONNECTION, getConnection() );
 		headers.put(UPGRADE_INSECURE_REQUESTS,getUpgradeInsecureRequests());
+		headers.put(REFERER, getReferer());
 		return headers;
 	}
 	

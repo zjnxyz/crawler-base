@@ -11,7 +11,7 @@ public interface CrawlerQueue {
      * 阻塞式出队一个请求
      * @return
      */
-    CrawlerRequest bPop(String crawlerName);
+    CrawlerRequest bPop(String queueName);
     /**
      * 入队一个请求
      * @param req

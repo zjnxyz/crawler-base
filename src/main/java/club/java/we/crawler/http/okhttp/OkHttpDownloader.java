@@ -52,7 +52,7 @@ public class OkHttpDownloader implements CrawlerDownloader{
 		OkHttpClient.Builder okHttpBuilder = OkHttpClientBuilderProvider.getInstance();
         if (crawlerDefinition.isUseCookie()){
 //            okHttpBuilder.cookieJar(CookiesMgrProvider.getInstance());
-        	okHttpBuilder.cookieJar(crawlerDefinition.getHeaderDefination().getCookiesManager());
+        	okHttpBuilder.cookieJar(currentRequest.getHeaders().getCookiesManager());
         }
         if (crawlerDefinition.getStdProxy()!=null){
             okHttpBuilder.proxy(crawlerDefinition.getStdProxy());
@@ -64,62 +64,63 @@ public class OkHttpDownloader implements CrawlerDownloader{
 
 	@Override
 	public CrawlerResponse process() throws Exception {
-		
-		int i=0;
-		while(i<3){
-			try{
-				lastResponse = okHttpClient.newCall(currentRequestBuilder.build()).execute();
-			}catch(Exception e){
-				e.printStackTrace();
-			}
-			//如果状态码不是200，或302（重定向），更换header里面的数据，反防爬虫
-			if( lastResponse != null &&(lastResponse.code() == 200 || lastResponse.code() == 302)){
-				break;
-			}
-			refreshHeader();
-			i++;
-		}
+		lastResponse = okHttpClient.newCall(currentRequestBuilder.build()).execute();
+//		int i=0;
+//		while(i<3){
+//			try{
+//				lastResponse = okHttpClient.newCall(currentRequestBuilder.build()).execute();
+//			}catch(Exception e){
+//				e.printStackTrace();
+//			}
+//			//如果状态码不是200，或302（重定向），更换header里面的数据，反防爬虫
+//			if( lastResponse != null &&(lastResponse.code() == 200 || lastResponse.code() == 302)){
+//				break;
+//			}
+//			refreshHeader();
+//			i++;
+//		}
         return renderResponse(lastResponse,currentRequest);
 	}
 	
+	@Deprecated
 	private void refreshHeader(){
-		AbstractBaseCrawler abstractBaseCrawler = crawlerDefinition.getCrawlerInstance();
-		Proxy proxy = crawlerDefinition.getStdProxy();
-		if( proxy != null){
-			int i=0;
-			while(i<3){
-				String proxyStr = abstractBaseCrawler.proxy();
-				if(!crawlerDefinition.getProxyStr().equals(proxyStr)){
-					crawlerDefinition.setProxyStr(proxyStr);
-					break;
-				}
-				i++;
-			}
-		}
-		
-		//刷新UA数据
-		int loopCount = 0;
-		HeaderDefination hd = crawlerDefinition.getHeaderDefination();
-		String oldUA = hd.getUserAgent();
-		if(!Strings.isNullOrEmpty(oldUA)){
-			while(loopCount <3){
-				String ua = abstractBaseCrawler.getUserAgent();
-				if(ua == null){
-					break;
-				}
-				if(!ua.equals(oldUA)){
-					hd.setUserAgent(ua);
-					break;
-				}
-				loopCount++;
-			}
-		}
-		//清空对应的cookies数据
-		hd.getCookiesManager().clearCookies();
-		//删除referer数据
-		currentRequest.setReferer(null);
-		//重新生成请求参数
-		currentRequestBuilder = OkHttpRequestGenerator.getOkHttpRequesBuilder(currentRequest, crawlerDefinition);
+//		AbstractBaseCrawler abstractBaseCrawler = crawlerDefinition.getCrawlerInstance();
+//		Proxy proxy = crawlerDefinition.getStdProxy();
+//		if( proxy != null){
+//			int i=0;
+//			while(i<3){
+//				String proxyStr = abstractBaseCrawler.proxy();
+//				if(!crawlerDefinition.getProxyStr().equals(proxyStr)){
+//					crawlerDefinition.setProxyStr(proxyStr);
+//					break;
+//				}
+//				i++;
+//			}
+//		}
+//		
+//		//刷新UA数据
+//		int loopCount = 0;
+//		HeaderDefination hd = currentRequest.getHeaders();
+//		String oldUA = hd.getUserAgent();
+//		if(!Strings.isNullOrEmpty(oldUA)){
+//			while(loopCount <3){
+//				String ua = abstractBaseCrawler.getUserAgent();
+//				if(ua == null){
+//					break;
+//				}
+//				if(!ua.equals(oldUA)){
+//					hd.setUserAgent(ua);
+//					break;
+//				}
+//				loopCount++;
+//			}
+//		}
+//		//清空对应的cookies数据
+////		hd.getCookiesManager().clearCookies();
+//		//删除referer数据
+////		currentRequest.setReferer(null);
+//		//重新生成请求参数
+//		currentRequestBuilder = OkHttpRequestGenerator.getOkHttpRequesBuilder(currentRequest, crawlerDefinition);
 		
 	}
 
@@ -141,17 +142,19 @@ public class OkHttpDownloader implements CrawlerDownloader{
 		return lastResponse.code();
 	}
 	
-	 private CrawlerResponse renderResponse(okhttp3.Response hcResponse,CrawlerRequest request){
+	 private CrawlerResponse renderResponse(okhttp3.Response okResponse,CrawlerRequest request){
 		 
 		 	CrawlerResponse response = new CrawlerResponse();
 		 
 		 	response.setRealUrl(lastResponse.request().url().toString());
 		 	response.setUrl(request.getUrl());
-		 	response.setRequest(request);
+		 	
+		 	// response不再存放这个值，直接从RequestContentHolder拿数据
+//		 	response.setRequest(request);
+		 	
 		 	response.setMeta(request.getMeta());
-		 	response.setReferer(hcResponse.header("Referer"));
-
-	        ResponseBody okResponseBody = hcResponse.body();
+//		 	response.setReferer(hcResponse.header("Referer"));
+	        ResponseBody okResponseBody = okResponse.body();
 	        if (okResponseBody!=null){
 	            String type = okResponseBody.contentType().type().toLowerCase();
 	            String subtype = okResponseBody.contentType().subtype().toLowerCase();

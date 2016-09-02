@@ -16,9 +16,9 @@ public class DefaultLocalQueue implements CrawlerQueue{
     private Map<String,ConcurrentSkipListSet<String>> processedData = new HashMap<>();
 
     @Override
-    public CrawlerRequest bPop(String crawlerName) {
+    public CrawlerRequest bPop(String queueName) {
         try {
-            LinkedBlockingQueue<CrawlerRequest> queue = getQueue(crawlerName);
+            LinkedBlockingQueue<CrawlerRequest> queue = getQueue(queueName);
             return queue.take();
         } catch (InterruptedException e) {
             log.error(e.getMessage(),e);
@@ -29,7 +29,7 @@ public class DefaultLocalQueue implements CrawlerQueue{
     @Override
     public boolean push(CrawlerRequest req) {
         try {
-            LinkedBlockingQueue<CrawlerRequest> queue = getQueue(req.getCrawlerName());
+            LinkedBlockingQueue<CrawlerRequest> queue = getQueue(req.getQueueName());
             queue.put(req);
             return true;
         } catch (InterruptedException e) {
@@ -39,45 +39,45 @@ public class DefaultLocalQueue implements CrawlerQueue{
     }
 
     @Override
-    public long len(String crawlerName) {
-        LinkedBlockingQueue<CrawlerRequest> queue = getQueue(crawlerName);
+    public long len(String queueName) {
+        LinkedBlockingQueue<CrawlerRequest> queue = getQueue(queueName);
         return queue.size();
     }
 
     @Override
     public boolean isProcessed(CrawlerRequest req) {
-        ConcurrentSkipListSet<String> set = getProcessedSet(req.getCrawlerName());
+        ConcurrentSkipListSet<String> set = getProcessedSet(req.getQueueName());
         String sign = DigestUtils.md5Hex(req.getUrl());
         return set.contains(sign);
     }
 
     @Override
     public void addProcessed(CrawlerRequest req) {
-        ConcurrentSkipListSet<String> set = getProcessedSet(req.getCrawlerName());
+        ConcurrentSkipListSet<String> set = getProcessedSet(req.getQueueName());
         String sign = DigestUtils.md5Hex(req.getUrl());
         set.add(sign);
     }
 
     @Override
-    public long totalCrawled(String crawlerName) {
-        ConcurrentSkipListSet<String> set = getProcessedSet(crawlerName);
+    public long totalCrawled(String queueName) {
+        ConcurrentSkipListSet<String> set = getProcessedSet(queueName);
         return set.size();
     }
 
-    public LinkedBlockingQueue<CrawlerRequest> getQueue(String crawlerName){
-        LinkedBlockingQueue<CrawlerRequest> queue = queueMap.get(crawlerName);
+    public LinkedBlockingQueue<CrawlerRequest> getQueue(String queueName){
+        LinkedBlockingQueue<CrawlerRequest> queue = queueMap.get(queueName);
         if (queue==null){
             queue = new LinkedBlockingQueue<>();
-            queueMap.put(crawlerName,queue);
+            queueMap.put(queueName,queue);
         }
         return queue;
     }
 
-    public ConcurrentSkipListSet<String> getProcessedSet(String crawlerName){
-        ConcurrentSkipListSet<String> set = processedData.get(crawlerName);
+    public ConcurrentSkipListSet<String> getProcessedSet(String queueName){
+        ConcurrentSkipListSet<String> set = processedData.get(queueName);
         if (set == null){
             set = new ConcurrentSkipListSet<>();
-            processedData.put(crawlerName,set);
+            processedData.put(queueName,set);
         }
         return set;
     }

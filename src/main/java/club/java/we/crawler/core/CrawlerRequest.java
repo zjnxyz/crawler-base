@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
+import club.java.we.crawler.config.HeaderDefination;
 import club.java.we.crawler.http.HttpMethod;
 import club.java.we.crawler.http.SeimiAgentContentType;
 
@@ -22,6 +23,7 @@ import club.java.we.crawler.http.SeimiAgentContentType;
 public class CrawlerRequest {
 
 	private String crawlerName;
+	
 	/**
 	 * 需要请求的url
 	 */
@@ -44,10 +46,7 @@ public class CrawlerRequest {
 	 */
 	@NonNull
 	private String callBack;
-	/**
-	 * 是否停止的信号，收到该信号的处理线程会退出
-	 */
-	private boolean stop = false;
+	
 	/**
 	 * 最大可被重新请求次数
 	 */
@@ -62,9 +61,6 @@ public class CrawlerRequest {
 	 * 用来指定一个请求是否要经过去重机制
 	 */
 	private boolean skipDuplicateFilter = false;
-	
-	/** 上一次请求的地址（url） */
-	private String referer;
 
 	/**
 	 * 针对该请求是否启用SeimiAgent
@@ -90,6 +86,12 @@ public class CrawlerRequest {
      * 告诉SeimiAgent将结果渲染成何种格式返回，默认HTML
      */
     private SeimiAgentContentType seimiAgentContentType = SeimiAgentContentType.HTML;
+    
+    /** 当前请求使用的队列*/
+	private String queueName;
+	
+	/** 当前请求使用的headers */
+	private HeaderDefination headers;
 	
 	public void incrReqCount(){
         this.currentReqCount +=1;
@@ -127,10 +129,7 @@ public class CrawlerRequest {
 		 * 回调函数方法名
 		 */
 		private String callBack;
-		/**
-		 * 是否停止的信号，收到该信号的处理线程会退出
-		 */
-		private boolean stop = false;
+	
 		/**
 		 * 最大可被重新请求次数
 		 */
@@ -166,8 +165,11 @@ public class CrawlerRequest {
 		 */
 		private Boolean seimiAgentUseCookie;
 		
-		/** 上一次请求的地址（url） */
-		private String referer;
+		/** 当前请求使用的队列*/
+		private String queueName;
+		
+		/** 当前请求使用的headers */
+		private HeaderDefination headers;
 		
 		 /**
 	     * 告诉SeimiAgent将结果渲染成何种格式返回，默认HTML
@@ -181,6 +183,11 @@ public class CrawlerRequest {
 	    
 	    public Builder crawlerName(String crawlerName){
 	    	this.crawlerName = crawlerName;
+	    	return this;
+	    }
+	    
+	    public Builder queueName(String queueName){
+	    	this.queueName = queueName;
 	    	return this;
 	    }
 	    
@@ -198,11 +205,7 @@ public class CrawlerRequest {
 	    	this.meta = meta;
 	    	return this;
 	    }
-	    
-	    public Builder stop(boolean stop){
-	    	this.stop = stop;
-	    	return this;
-	    }
+	  
 	    
 	    public Builder maxReqCount(int maxReqCount ){
 	    	this.maxReqCount = maxReqCount;
@@ -244,16 +247,17 @@ public class CrawlerRequest {
 	    	return this;
 	    }
 	    
-	    public Builder referer(String referer){
-	    	this.referer = referer;
+	    
+	    public Builder headers(HeaderDefination headers){
+	    	this.headers = headers;
 	    	return this;
 	    }
 	    
 	    public CrawlerRequest build(){
 	    	return new CrawlerRequest(crawlerName, url, httpMethod, params, meta,
-	    			callBack, stop, maxReqCount, currentReqCount, skipDuplicateFilter,referer,
+	    			callBack, maxReqCount, currentReqCount, skipDuplicateFilter,
 	    			useSeimiAgent, seimiAgentRenderTime, seimiAgentScript,
-	    			seimiAgentUseCookie, seimiAgentContentType);
+	    			seimiAgentUseCookie, seimiAgentContentType,queueName,headers);
 	    }
 	    
 	    

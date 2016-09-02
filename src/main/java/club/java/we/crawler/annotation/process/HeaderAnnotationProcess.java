@@ -7,8 +7,7 @@ import club.java.we.crawler.core.AbstractBaseCrawler;
 public class HeaderAnnotationProcess {
 	
 	
-	public static HeaderDefination process(Class<? extends AbstractBaseCrawler> clazz ){
-		HeaderDefination headerDefination = new HeaderDefination();
+	public static void process(Class<? extends AbstractBaseCrawler> clazz, HeaderDefination headerDefination){
 		Header header = clazz.getAnnotation(Header.class);
 		if(header != null){
 			headerDefination.setAccept(header.accept());
@@ -17,7 +16,6 @@ public class HeaderAnnotationProcess {
 			headerDefination.setConnection(header.connection());
 			headerDefination.setUpgradeInsecureRequests(header.upgradeInsecureRequests());
 		}
-		return headerDefination;
 	}
 
 }

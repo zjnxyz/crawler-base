@@ -54,7 +54,7 @@ public class OkHttpRequestGenerator {
 //            requestBuilder.header("User-Agent", crawlerDefinition.isUseCookie() ? crawlerDefinition.getCurrentUA() : crawler.getUserAgent())
 //                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 //                    .header("Accept-Language", "zh-CN,zh;q=0.8,en;q=0.6");
-            Map<String, String> headers = crawlerDefinition.getHeaderDefination().getHeaders();
+            Map<String, String> headers = request.getHeaders().getHeaders();
             
             for(String key:headers.keySet()){
             	String value = headers.get(key);
@@ -62,10 +62,10 @@ public class OkHttpRequestGenerator {
             		requestBuilder.header(key, value);
             	}
             }
-            //组装Referer数据
-            if(!Strings.isNullOrEmpty(request.getReferer())){
-            	requestBuilder.header(HeaderDefination.REFERER, request.getReferer());
-            }
+            //组装Referer数据 放到headers中去了
+//            if(!Strings.isNullOrEmpty(request.getReferer())){
+//            	requestBuilder.header(HeaderDefination.REFERER, request.getReferer());
+//            }
             
             if (HttpMethod.POST.equals(request.getHttpMethod())) {
                 FormBody.Builder formBodyBuilder = new FormBody.Builder();

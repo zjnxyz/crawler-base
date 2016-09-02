@@ -18,7 +18,6 @@ import club.java.we.crawler.constant.BodyType;
 public class CrawlerResponse {
 
 	private BodyType bodyType;
-	private CrawlerRequest request;
 	private String charset;
 	private String referer;
 	private byte[] data;

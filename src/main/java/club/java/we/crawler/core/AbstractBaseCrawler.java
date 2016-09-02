@@ -1,41 +1,22 @@
 package club.java.we.crawler.core;
 
+import java.util.ArrayList;
 import java.util.List;
-
 import lombok.extern.log4j.Log4j2;
-
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.RandomUtils;
-
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 
 import club.java.we.crawler.annotation.Crawler;
-import club.java.we.crawler.annotation.Header;
+import club.java.we.crawler.annotation.process.HeaderAnnotationProcess;
 import club.java.we.crawler.config.CrawlerDefinition;
+import club.java.we.crawler.config.HeaderDefination;
 import club.java.we.crawler.http.HttpMethod;
+import club.java.we.crawler.support.UserAgentPool;
 @Log4j2
 public abstract class AbstractBaseCrawler implements BaseCrawler {
 
-	protected String[] defUAs = new String[] {
-			"Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.43 Safari/537.31",
-			"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.60 Safari/537.17",
-			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17",
-			"Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.2; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0)",
-			"Mozilla/5.0 (Windows; U; MSIE 7.0; Windows NT 6.0; en-US)",
-			"Mozilla/5.0 (Windows; U; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727)",
-			"Mozilla/6.0 (Windows NT 6.2; WOW64; rv:16.0.1) Gecko/20121011 Firefox/16.0.1",
-			"Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:15.0) Gecko/20100101 Firefox/15.0.1",
-			"Mozilla/5.0 (Windows NT 6.2; WOW64; rv:15.0) Gecko/20120910144328 Firefox/15.0.2",
-			"Mozilla/5.0 (Windows; U; Windows NT 6.1; rv:2.2) Gecko/20110201",
-			"Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9a3pre) Gecko/20070330",
-			"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.13; ) Gecko/20101203",
-			"Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.14",
-			"Opera/9.80 (X11; Linux x86_64; U; fr) Presto/2.9.168 Version/11.50",
-			"Opera/9.80 (Macintosh; Intel Mac OS X 10.6.8; U; de) Presto/2.9.168 Version/11.52",
-			"Mozilla/5.0 (Windows; U; Win 9x 4.90; SG; rv:1.9.2.4) Gecko/20101104 Netscape/9.1.0285",
-			"Mozilla/5.0 (Macintosh; U; PPC Mac OS X Mach-O; en-US; rv:1.8.1.7pre) Gecko/20070815 Firefox/2.0.0.6 Navigator/9.0b3",
-			"Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.12) Gecko/20080219 Firefox/2.0.0.12 Navigator/9.0.0.6" };
+	public static String KEY_CRAWLER_NAME = "Crawler-%s-Acceptor-%s";
 
 	protected CrawlerQueue queue;
 
@@ -61,7 +42,9 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 	private CrawlerContext crawlerContext;
 	
 	//任务接收器
-	private Acceptor acceptor;
+//	private Acceptor acceptor;
+	
+	protected Acceptor[] acceptors;
 	
 	//爬虫是否在运行中
 	protected volatile boolean running = false;
@@ -74,17 +57,18 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 		this.crawlerName = this.clazz.getName();
 		crawlerAnnotationProcess();
 		register();
-		startAcceptor();
+		startAcceptorThreads();
 	}
 	
 
-	@Override
-	public String getUserAgent() {
-		int index = RandomUtils.nextInt(0, defUAs.length);
-		return defUAs[index];
-	}
-
 	protected void push(CrawlerRequest request) {
+		CrawlerRequest prevRequest = RequestContentHolder.getCrawlerRequest();
+		if(Strings.isNullOrEmpty(request.getQueueName())){
+			request.setQueueName(prevRequest.getQueueName());
+		}
+		if(request.getHeaders() == null){
+			request.setHeaders(prevRequest.getHeaders());
+		}
 		request.setCrawlerName(crawlerName);
 		queue.push(request);
 	}
@@ -121,6 +105,15 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 	@Override
 	public int seimiAgentPort() {
 		return 80;
+	}
+	
+	 /**
+     * Acceptor thread count.
+     */
+    protected int acceptorThreadCount = 1;
+    
+	public int getAcceptorThreadCount(){
+		return acceptorThreadCount;
 	}
 
 	@Override
@@ -159,6 +152,10 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 	public void setHttpTimeOut(int httpTimeOut) {
 		this.httpTimeOut = httpTimeOut;
 	}
+	
+	public UserAgentPool getuAgentPool(){
+		return new UserAgentPool();
+	}
 
 	/**
 	 * 每个爬虫都需要实现这个start方法，实现第一个页面解析
@@ -170,7 +167,7 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 	 */
 	public void runCrawler() {
 		if(!running){
-			startAcceptor();
+			startAcceptorThreads();
 		}
 		sendRequest();
 	}
@@ -182,24 +179,33 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 		if(running){
 			running = false;
 			//停止对应的线程
-			acceptor.stop();
-			log.trace(" stop [{}],receive request...",acceptor.getThreadName());
+			for(int i = 0;i<acceptors.length;i++){
+				acceptors[i].stop();
+				log.info(" stop [{}],receive request...",acceptors[i].getThreadName());
+			}
 		}
 	}
 	
-	private void startAcceptor(){
-		running = true;
-		
-		acceptor = new Acceptor(crawlerContext, crawlerName);
-		String threadName = "Crawler-"+crawlerName+"-Acceptor";
-		acceptor.setThreadName(threadName);
-		Thread t = new Thread(acceptor, threadName);
-		//后台运行
-        t.setDaemon(true);
-        t.start();
-        log.trace(" start [{}],receive request...",threadName);
-       
-	}
+	List<String> threadNames = new ArrayList<String>(getAcceptorThreadCount());
+	
+	 protected final void startAcceptorThreads() {
+		 	running = true;
+	        int count = getAcceptorThreadCount();
+	        acceptors = new Acceptor[count];
+	        for(int i=0;i<count;i++){
+	        	String threadName = String.format(KEY_CRAWLER_NAME, crawlerName,i);
+	        	threadNames.add(threadName);
+	        	acceptors[i]= new Acceptor(crawlerContext, crawlerName);
+	        	acceptors[i].setThreadName(threadName);
+				Thread t = new Thread(acceptors[i], threadName);
+				//后台运行
+		        t.setDaemon(true);
+		        t.start();
+		        log.info(" start [{}],receive request...",threadName);
+	        }
+	 }
+	
+
 
 	/**
 	 * 注册爬虫信息
@@ -212,7 +218,22 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 				.useUnrepeated(useUnrepeated).queueInstance(queue);
 		crawlerContext.addCrawler(builder.build());
 	}
+	
+	/**
+	 * 创建请求头
+	 * @param suffix
+	 * @return
+	 */
+	private HeaderDefination createHeader(String suffix){
+		HeaderDefination header = new HeaderDefination(suffix);
+		header.setUserAgent(getuAgentPool().select());
+		HeaderAnnotationProcess.process(clazz, header);
+		return header;
+	}
 
+	
+	int threadIndex = 0;
+	
 	/**
 	 * 初始化方法
 	 */
@@ -230,7 +251,14 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 								urlPies.get(0))) {
 					requestBuilder.httpMethod(HttpMethod.POST);
 				}
-				requestBuilder.crawlerName(crawlerName);
+				if(threadNames.size() == 0){
+					return;
+				}
+				String queueName = threadNames.get(threadIndex %threadNames.size());
+				threadIndex++;
+				requestBuilder.queueName(queueName);
+				// 绑定header数据
+				requestBuilder.headers(createHeader(queueName));
 				queue.push(requestBuilder.build());
 				log.info("{} url={} started", crawlerName, url);
 			}
@@ -244,6 +272,10 @@ public abstract class AbstractBaseCrawler implements BaseCrawler {
 				if (Strings.isNullOrEmpty(request.getCallBack())) {
 					request.setCallBack(METHOD_START);
 				}
+				String queueName = threadNames.get(threadIndex %threadNames.size());
+				threadIndex++;
+				request.setQueueName(queueName);
+				request.setHeaders(createHeader(queueName));
 				queue.push(request);
 				log.info("{} url={} started", crawlerName, request.getUrl());
 			}

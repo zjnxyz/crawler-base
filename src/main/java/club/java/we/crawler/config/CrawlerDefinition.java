@@ -10,7 +10,6 @@ import lombok.extern.log4j.Log4j2;
 
 import com.google.common.collect.Maps;
 
-import club.java.we.crawler.annotation.process.HeaderAnnotationProcess;
 import club.java.we.crawler.core.AbstractBaseCrawler;
 import club.java.we.crawler.core.CrawlerQueue;
 import club.java.we.crawler.utils.ProxyResolveUtils;
@@ -33,8 +32,6 @@ public class CrawlerDefinition {
 
 	private boolean useCookie = false;
 
-	private String currentUA;
-
 	private boolean useUnrepeated = true;
 
 	private int delay = 0;
@@ -48,8 +45,6 @@ public class CrawlerDefinition {
 	private CrawlerQueue queueInstance;
 
 	private Class<? extends CrawlerQueue> queueClass;
-	
-	private HeaderDefination headerDefination;
 
 	// 代理
 	private Proxy stdProxy;
@@ -96,10 +91,6 @@ public class CrawlerDefinition {
 					}
 				});
 
-		this.currentUA = crawlerInstance.getUserAgent();
-		
-		this.headerDefination = HeaderAnnotationProcess.process(crawlerClazz);
-		headerDefination.setUserAgent(currentUA);
 		log.info("Crawler[{}] init complete.", crawlerName);
 
 	}

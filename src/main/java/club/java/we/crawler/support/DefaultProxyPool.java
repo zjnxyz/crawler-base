@@ -31,10 +31,10 @@ public class DefaultProxyPool extends AbstractProxyPool{
 		if(size == 0){
 			return null;
 		}
-		return getvalidProxy(crawlerName,proxyPool,size);
+		return getValidProxy(crawlerName,proxyPool,size);
 	}
 	
-	private String getvalidProxy(String crawlerName,CopyOnWriteArrayList<String> proxyPool,int size){
+	private String getValidProxy(String crawlerName,CopyOnWriteArrayList<String> proxyPool,int size){
 		int i = 0;
 		int index = RandomUtils.nextInt(0, size);
 		CopyOnWriteArrayList<String> useProxies = getUseProxies(crawlerName);

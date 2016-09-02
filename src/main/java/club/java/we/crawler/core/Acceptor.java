@@ -43,6 +43,9 @@ public class Acceptor implements Runnable {
     
     private CrawlerContext context;
     
+    /** 当前线程使用的队列名称 */
+    private String queueName;
+    
     private String crawlerName;
 	
     public Acceptor(CrawlerContext context, String crawlerName) {
@@ -57,6 +60,7 @@ public class Acceptor implements Runnable {
     private String threadName;
     protected final void setThreadName(final String threadName) {
         this.threadName = threadName;
+        this.queueName = threadName;
     }
     protected final String getThreadName() {
         return threadName;
@@ -93,7 +97,7 @@ public class Acceptor implements Runnable {
 			state = AcceptorState.RUNNING;
 			//  多线程处理业务
 			if(running && !paused){
-				CrawlerRequest request = queue.bPop(crawlerName);
+				CrawlerRequest request = queue.bPop(queueName);
 				if(request == null){
 					log.trace("crawler[{}] queue is empty!",crawlerDefinition.getCrawlerName());
 					continue;
@@ -176,6 +180,10 @@ public class Acceptor implements Runnable {
                 	 log.trace("Crawler[{}],url={} ,have not callback ", crawlerDefinition.getCrawlerName(), request.getUrl());
                      return;
                  }
+                  //把request放到上下文中(先设置下一次请求使用的referer)
+                 request.getHeaders().setReferer(response.getUrl());
+     		 	 RequestContentHolder.setCrawlerRequest(request);
+     		 	
                  requestCallback.invoke(crawler, response);
                  log.debug("Crawler[{}] ,url={} ,responseStatus={}", crawlerDefinition.getCrawlerName(), request.getUrl(), downloader.statusCode());
 
